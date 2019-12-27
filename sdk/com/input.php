@@ -49,7 +49,7 @@ class input
 		{
 			if(strpos($rule,';') === FALSE)
 			{
-				list($field,$force,$value) = (explode(':',$rule) + array('','',$value));
+				list($field,$parse,$value) = (explode(':',$rule) + array('','',$value));
 			}
 			else
 			{
@@ -62,7 +62,7 @@ class input
 		else
 		{
 			$field = '';
-			$force = '';
+			$parse = '';
 			$value = '';
 
 			foreach($rule as $key => $val)
@@ -80,7 +80,7 @@ class input
 
 		if($data[$field] !== NULL)
 		{
-			switch($force)
+			switch($parse)
 			{
 				case 'strval':
 					$data[$field] = htmlentities($data[$field]);
@@ -207,7 +207,7 @@ class input
 
 	static function validate(&$data,$rule,&$error,$extend_validation = NULL)
 	{
-		// rule => { field, alias, force, value, rules }
+		// rule => { field, alias, parse, value, rules }
 		// $extend_validation must be an object, such as new class, no matter static or dynamic
 
 		$label  = [];
