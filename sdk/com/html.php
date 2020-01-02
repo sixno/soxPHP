@@ -131,7 +131,14 @@ class html
 
 		ob_start();
 
-		include self::$view_dir.$path.'.php';
+		if(substr($path,0,1) == '/')
+		{
+			include self::$base.$path.'.php';
+		}
+		else
+		{
+			include self::$view_dir.$path.'.php';
+		}
 
 		$view = ob_get_contents();
 
