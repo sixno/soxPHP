@@ -288,7 +288,7 @@ class db
 							}
 							else
 							{
-								$key = $key.' != ';
+								$key = str_replace(' = ',' != ',$key);
 								$val = substr($val,1,-1);
 							}
 							break;
@@ -302,7 +302,7 @@ class db
 							}
 							else
 							{
-								$key = $key.' != ';
+								$key = str_replace(' = ',' != ',$key);
 								$val = substr($val,1,-1);
 							}
 							break;

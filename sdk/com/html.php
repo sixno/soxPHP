@@ -2,6 +2,7 @@
 
 class html
 {
+	static $a = [];
 	static $d = [];
 
 	static $uri = '';
@@ -30,7 +31,7 @@ class html
 
 		self::$uri = self::uri(1,$def_route).'/'.self::uri(2,$def_route);
 
-		if($must) require self::$base_dir.$must.'.php';
+		if($must) self::$d = require self::$vars_dir.$must.'.php';
 
 		if(substr(self::$uri,0,1) == '_' || strpos(self::$uri,'/_')) self::__403();
 
@@ -40,12 +41,16 @@ class html
 		{
 			if(is_file(self::$view_dir.self::uri(1,$def_route).'.php'))
 			{
+				self::$a = array_slice(self::uri(),2);
+
 				self::__output(self::uri(1,$def_route));
 			}
 			elseif(is_dir(self::$view_dir.self::uri(1,$def_route)))
 			{
 				if(is_file(self::$view_dir.self::uri(1,$def_route).'/'.self::uri(2,$def_route).'.php'))
 				{
+					self::$a = array_slice(self::uri(),3);
+
 					self::__output(self::uri(1,$def_route).'/'.self::uri(2,$def_route));
 				}
 				else
@@ -94,7 +99,7 @@ class html
 		exit;
 	}
 
-	static function render($path,$vars = '',$key = '')
+	static function render($path,$vars = '')
 	{
 		$html = new \sox\sdk\com\html;
 
@@ -108,23 +113,16 @@ class html
 			}
 			else
 			{
-				$method = '\\sox\\'.str_replace('/','\\',self::$base).'\\vars\\'.self::uri(1).'::'.self::uri(2);
-				$params = array_slice(self::uri(),3);
-
-				$result = empty($params) ? $method() : call_user_func_array($method,$params);
-
-				if($result) $d = array_merge($d,$result);
-
-				if($vars)
+				if(!$vars)
 				{
-					if($key)
+					if(substr($path,0,1) != '/' && is_file(self::$vars_dir.'view/'.$path.'.php'))
 					{
-						self::$d[$vars] = $result[$key];
+						$d = array_merge($d,include self::$vars_dir.'view/'.$path.'.php');
 					}
-					else
-					{
-						self::$d[$vars] = $result;
-					}
+				}
+				else
+				{
+					$d = array_merge($d,include self::$vars_dir.$vars.'.php');
 				}
 			}
 		}
