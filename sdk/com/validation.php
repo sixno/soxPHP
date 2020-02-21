@@ -248,7 +248,7 @@ class validation
 
 		if(!$result)
 		{
-			self::$error[$field] = sprintf(self::$err_t['min_length'],self::$label[$field]);
+			self::$error[$field] = sprintf(self::$err_t['min_length'],self::$label[$field],$len);
 		}
 
 		return $result;
@@ -269,7 +269,7 @@ class validation
 
 		if(!$result)
 		{
-			self::$error[$field] = sprintf(self::$err_t['max_length'],self::$label[$field]);
+			self::$error[$field] = sprintf(self::$err_t['max_length'],self::$label[$field],$len);
 		}
 
 		return $result;
@@ -290,7 +290,7 @@ class validation
 
 		if(!$result)
 		{
-			self::$error[$field] = sprintf(self::$err_t['exact_length'],self::$label[$field]);
+			self::$error[$field] = sprintf(self::$err_t['exact_length'],self::$label[$field],$len);
 		}
 
 		return $result;
@@ -415,7 +415,7 @@ class validation
 
 		if(!$result)
 		{
-			self::$error[$field] = sprintf(self::$err_t['alpha_dash'],self::$label[$field]);
+			self::$error[$field] = sprintf(self::$err_t['numeric'],self::$label[$field]);
 		}
 
 		return $result;

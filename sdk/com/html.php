@@ -6,6 +6,7 @@ class html
 	static $d = [];
 
 	static $uri = '';
+	static $get = '';
 
 	static $file = 'index.php';
 	static $base = 'html';
@@ -150,8 +151,35 @@ class html
 		self::render($path,$vars);
 	}
 
-	static function url($uri = '')
+	static function url($uri = '',$get = [],$hash = '')
 	{
+		if(is_string($get))
+		{
+			$hash = $get;
+
+			$get = [];
+		}
+
+		if(self::$get)
+		{
+			foreach(explode(',',self::$get) as $g)
+			{
+				$get[$g] = http_get($g);
+			}
+		}
+
+		$get = array_filter($get);
+
+		if(!empty($get))
+		{
+			$uri .= '?'.http_build_query($get);
+		}
+
+		if($hash)
+		{
+			$uri .= '#'.$hash;
+		}
+
 		if(url() == '/')
 		{
 			return url(self::$hide_file ? $uri : self::$file.'/'.$uri);
@@ -165,6 +193,43 @@ class html
 	static function uri($key = 0,$def = '')
 	{
 		return http_uri($key,$def,self::$file);
+	}
+
+	static function redirect($uri = '',$get = [],$hash = '',$wait = FALSE)
+	{
+		if(is_int($hash))
+		{
+			$wait = $hash;
+
+			$hash = '';
+		}
+
+		if(is_int($get))
+		{
+			$wait = $get;
+
+			$get = [];
+		}
+
+		if(is_string($get))
+		{
+			$hash = $get;
+
+			$get = [];
+		}
+
+		$url = self::url($uri,$get,$hash);
+
+		if($wait === FALSE)
+		{
+			header("Location:".$url);
+		}
+		else
+		{
+			header("Refresh:".$wait.";url=".$url);
+		}
+
+		exit;
 	}
 }
 

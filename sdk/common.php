@@ -754,6 +754,108 @@ function send_request($url,$entity = array(),$header = array(),$method = '',$is_
 	return $result;
 }
 
+function download($url,$file_path = '',$allow_type = '')
+{
+	if (empty($url)) return FALSE;
+
+	if(substr($file_path,-1) == '/')
+	{
+		$dir = substr($file_path,0,-1);
+
+		$file_name = '';
+		$file_type = '';
+	}
+	else
+	{
+		$dir = dirname($file_path);
+
+		$file_name = substr($file_path,strlen($dir)+1);
+
+		list($file_name,$file_type) = explode('.',$file_name)+['',''];
+	}
+
+	if(!is_dir($dir)) mkdir($dir,0777,TRUE);
+
+	if($file = @fopen($url,'rb'))
+	{
+		$bin = fread($file,2);
+
+		fclose($file);
+	}
+	else
+	{
+		return FALSE;
+	}
+
+	$str = unpack('C2chars',$bin);
+	$int = intval($str['chars1'].$str['chars2']);
+
+	switch($int)
+	{
+		case 255216: $detect_type = 'jpg';  break;
+		case 13780:  $detect_type = 'png';  break;
+		case 7173:   $detect_type = 'gif';  break;
+		case 6677:   $detect_type = 'bmp';  break;
+		case 8075:   $detect_type = 'zip';  break;
+		case 8297:   $detect_type = 'rar';  break;
+		case 7790:   $detect_type = 'exe';  break;
+		case 7784:   $detect_type = 'midi'; break;
+
+		default:
+			$detect_type = explode('/',$url);
+			$detect_type = array_pop($detect_type);
+
+			if(strpos($detect_type,'.') === FALSE)
+			{
+				$detect_type = 'non';
+			}
+			else
+			{
+				$detect_type = explode('.',$detect_type);
+				$detect_type = array_pop($detect_type);
+			}
+			break;
+	}
+
+	if(!empty($allow_type))
+	{
+		if(!in_array($detect_type,explode('|',$allow_type))) return FALSE;
+
+		$file_type = $detect_type;
+	}
+	else
+	{
+		if(!empty($file_type))
+		{
+			if($detect_type != 'non' && $detect_type != $file_type) return FALSE;
+		}
+		else
+		{
+			$file_type = $detect_type;
+		}
+	}
+
+	if($file_name === '')
+	{
+		$file_name = md5(uniqid().usec(10000,99999)).'.'.$file_type;
+	}
+	elseif(strpos($file_name,'.') === FALSE)
+	{
+		$file_name .= '.'.$file_type;
+	}
+
+	ob_start();
+	readfile($url);
+	$file_body = ob_get_contents();
+	ob_end_clean();
+
+	$fp = fopen($dir.'/'.$file_name,'a');
+	fwrite($fp,$file_body);
+	fclose($fp);
+
+	return $dir.'/'.$file_name;
+}
+
 function img_resize($src,$dst,$dst_w,$dst_h,$size = '')
 {
 	$type = exif_imagetype($src);

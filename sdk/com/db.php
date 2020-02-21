@@ -605,7 +605,7 @@ class db
 		}
 	}
 
-	public function increase($where = '',$item = '',$step = 0)
+	public function increase($where = '',$item = '',$step = 0,$data = [])
 	{
 		if($step == 0 && is_numeric($item))
 		{
@@ -631,6 +631,16 @@ class db
 			foreach($item as $key => $value)
 			{
 				$sql .= '`'.$key.'` = `'.$key.'`'.($value > 0 ? '+'.$value : (string)$value).', ';
+			}
+
+			$data = $step;
+		}
+
+		if(!empty($data))
+		{
+			foreach($data as $key => $value)
+			{
+				$sql .= '`'.$key.'` = \''.$this->escape($value).'\', ';
 			}
 		}
 
