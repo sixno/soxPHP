@@ -5,22 +5,60 @@ class api
 	static $file = 'api.php';
 	static $base = 'api';
 	static $json = ['out' => '0','msg' => '','data' => '','code' => '','line' => ''];
-	static $cros = FALSE;
+	static $cors = FALSE;
+	static $acch = 'x-token';
 
 	static $base_dir = '';
 	static $json_set = [];
 	static $func_cur = '';
 
-	static function __workon($file = 'api.php',$base = 'api',$cros = FALSE,$def_api = '',$def_act = '')
+	static function __workon($file = 'api.php',$base = 'api',$cors = FALSE,$def_api = '',$def_act = '')
 	{
 		self::$file = $file;
 		self::$base = $base;
-		self::$cros = $cros;
 
 		self::$base_dir = getcwd().'/'.self::$base.'/';
 
 		$uri_1 = self::uri(1,$def_api);
 		$uri_2 = self::uri(2,$def_act);
+
+		if (!is_array($cors))
+		{
+			self::$cors = $cors;
+		}
+		else
+		{
+			if (isset($cors['acch']))
+			{
+				self::$acch = $cors['acch'];
+			}
+
+			if (isset($cors['cors']))
+			{
+				if (is_array($cors['cors']))
+				{
+					if ($cors['cors']['*'])
+					{
+						self::$cors = $cors['cors']['*'];
+					}
+					else
+					{
+						self::$cors = FALSE;
+					}
+
+					if ($uri_1 && isset($cors['cors'][$uri_1]))
+					{
+						self::$cors = $cors['cors'][$uri_1];
+					}
+				}
+				else
+				{
+					self::$cors = $cors['cors'];
+				}
+			}
+		}
+
+		if(http_method() == 'options') self::__output();
 
 		if($uri_1 != '')
 		{
@@ -146,34 +184,34 @@ class api
 
 		if(!empty($_SERVER['HTTP_ORIGIN']))
 		{
-			if(self::$cros)
+			if(self::$cors)
 			{
 				$allow = FALSE;
 
-				if(self::$cros == '*')
+				if(self::$cors == '*')
 				{
 					$allow = TRUE;
 				}
 				else
 				{
-					$cros = explode(';',self::$cros);
+					$cors = explode(';',self::$cors);
 
 					$pos = strpos($_SERVER['HTTP_ORIGIN'],'://');
 					$cmp = substr($_SERVER['HTTP_ORIGIN'],$pos + 3);
 
-					foreach($cros as $cro)
+					foreach($cors as $cor)
 					{
-						$cro = trim($cro);
+						$cor = trim($cor);
 
-						if(empty($cro)) continue;
+						if(empty($cor)) continue;
 
-						if(substr($cro,0,1) == '.')
+						if(substr($cor, 0, 1) == '.')
 						{
-							$allow = (substr('.'.$cmp,-strlen($cro)) === $cro);
+							$allow = (substr('.'.$cmp,-strlen($cor)) === $cor);
 						}
 						else
 						{
-							$allow = ($cmp === $cro);
+							$allow = ($cmp === $cor);
 						}
 
 						if($allow) break;
@@ -185,21 +223,24 @@ class api
 					header('Access-Control-Allow-Origin: '.$_SERVER['HTTP_ORIGIN']);
 					header('Access-Control-Allow-Methods: OPTIONS,GET,POST');
 					header('Access-Control-Allow-Credentials: true');
-					header('Access-Control-Allow-Headers:x-requested-with,content-type,if-modified-since,x-token');
-					header('Access-Control-Expose-Headers: x-token');
+					header('Access-Control-Allow-Headers: x-requested-with,content-type,if-modified-since,'.self::$acch);
+					header('Access-Control-Expose-Headers: '.self::$acch);
+					header('Access-Control-Max-Age: 86400');
 				}
-			}
-
-			if(http_method() == 'options')
-			{
-				header('Access-Control-Max-Age: 86400');
-
-				exit;
 			}
 		}
 
+		if (http_method() == 'options') exit;
+
 		array_walk_recursive(self::$json,function(&$v,$k){
-			$v = (string)$v;
+			if($v === NULL)
+			{
+				$v = (object)NULL;
+			}
+			else
+			{
+				$v = (string)$v;
+			}
 		});
 
 		echo json_encode(self::$json,JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -207,7 +248,7 @@ class api
 		exit;
 	}
 
-	static function line(&$db,&$map,$length = 20,$method = FALSE)
+	static function line(&$db, &$map, $length = 20, $method = FALSE)
 	{
 		if($method === FALSE)
 		{
@@ -225,54 +266,43 @@ class api
 
 		if($method != self::$func_cur) return ;
 
-		if(strpos(http_get('line'),',') !== FALSE || http_get('line') === '' || http_get('line' === '$'))
+		if(strpos(http_get('line'),',') !== FALSE || http_get('line') === '' || http_get('line') === '$')
 		{
-			if(isset($map['#tline'])) unset($map['#tline']);
-
-			if(isset($map['#lsort']))
+			if(isset($map['#sort1']))
 			{
-				$map['#order'] = empty($map['#order']) ? $map['#lsort'] : $map['lsort'].';'.$map['#order'];
-
-				unset($map['lsort']);
+				$map['#order'] = empty($map['#order']) ? $map['#sort1'] : $map['#sort1'].';'.$map['#order'];
 			}
 
-			list($page,$tote) = explode(',',self::get('line')) + [0,0];
+			list($page, $size, $rows) = explode(',',self::get('line')) + [1, $length, 0];
 
-			$tote = (int)$tote;
+			$rows = (int)$rows;
 
-			if($tote == 0 || $page == '$')
-			{
-				$tote = $db->count($map);
+			if($rows == 0 || $page == '$') $rows = $db->count($map);
 
-				$tote = ceil($tote / $length);
-			}
+			$nums = ceil($rows / $size);
 
 			if($page == '$')
 			{
-				$page = $tote;
+				$page = $nums;
 			}
 			else
 			{
 				$page = (int)$page;
 			}
 
-			if($page == 0) $page = 1;
+			if($page <= 0) $page = 1;
 
-			$offset = ($page - 1) * $length;
+			$move = ($page - 1) * $size;
 
-			$map['#limit'] = $length.','.$offset;
+			$map['#limit'] = $size.','.$move;
 
-			self::set('line',$page < $tote ? ($page + 1).','.$tote.','.$page : 'end,'.$tote.','.$page,$method);
+			self::set('line', ($page < $nums ? ($page + 1) : 'end').','.$size.','.$rows, $method);
 		}
 		else
 		{
-			if(isset($map['#lsort'])) unset($map['#lsort']);
-
-			if(isset($map['#tline']))
+			if(isset($map['#sort2']))
 			{
-				$table = $map['#tline'];
-
-				unset($map['#tline']);
+				$table = $map['#sort2'];
 			}
 			else
 			{
@@ -300,6 +330,8 @@ class api
 		}
 
 		$db->reset();
+
+		return self::$json['line'];
 	}
 
 	static function set($key,$val = '',$method = FALSE)

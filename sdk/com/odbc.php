@@ -66,7 +66,7 @@ class odbc
 		return $row;
 	}
 
-	public function fetch_all($assoc = 1)
+	public function fetch_all($assoc = MYSQLI_ASSOC)
 	{
 		if(empty($this->exec)) return FALSE;
 

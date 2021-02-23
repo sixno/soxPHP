@@ -22,6 +22,7 @@ class db
 
 		switch($conf['dbdriver'])
 		{
+			case 'pdo': $this->mysql = load_pdo($conf); break;
 			case 'odbc': $this->mysql = load_odbc($conf); break;
 
 			default: $this->mysql = load_mysql($conf); break;
@@ -176,7 +177,6 @@ class db
 
 								switch($like)
 								{
-									case '%%': $key = '`'.substr($key,2,-5).'` = '; break;
 									case '_%': $key = substr_replace($key,'',-5,1);$val = str_replace('%','\%',$val).'%'; break;
 									case '%_': $key = substr_replace($key,'',1,1);$val = '%'.str_replace('%','\%',$val); break;
 
@@ -341,7 +341,7 @@ class db
 
 	public function count($map = array())
 	{
-		$sql = 'SELECT COUNT(*) FROM '.$this->table.' ';
+		$sql = 'SELECT COUNT(*) FROM `'.$this->table.'` ';
 
 		if(isset($map['#unite']))
 		{
@@ -361,6 +361,11 @@ class db
 		}
 
 		$sql .= $this->where($map);
+
+		if(empty($map))
+		{
+			$sql .= ' FORCE INDEX(PRIMARY) ';
+		}
 
 		$result = $this->mysql->query($sql)->fetch_row();
 
@@ -586,10 +591,8 @@ class db
 			if($order != '') $map['#order'] = $order;
 			if($limit != '') $map['#limit'] = '1,0';
 		}
-		else
-		{
-			if(empty($map['#limit'])) $map['#limit'] = '1,0';
-		}
+
+		if(empty($map['#limit'])) $map['#limit'] = '1,0';
 
 		$list = $this->read($map);
 

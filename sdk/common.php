@@ -66,13 +66,15 @@ function get_caller_info()
 	return($c);
 }
 
-function usec($microtime = NULL,$date_format = '')
+function utime($microtime = NULL,$date_format = '')
 {
-	if($microtime === NULL)
+	if($microtime === NULL || $microtime < 0)
 	{
 		$mt = explode(' ',microtime());
 
-		return $mt[1].sprintf('%06d',$mt[0] * 1000000);
+		$us = $mt[1].sprintf('%06d',$mt[0] * 1000000);
+
+		return $microtime ? substr($us,0,$microtime) : $us;
 	}
 	else
 	{
@@ -297,7 +299,7 @@ function http_uri($n = 0,$def = '',$index_file = 'index.php')
 	{
 		foreach($n as $k => $v)
 		{
-			$uri[$k+1] = $v;
+			$uri[$k + 1] = $v;
 		}
 
 		return $uri;
@@ -626,65 +628,87 @@ function send_request($url,$entity = array(),$header = array(),$method = '',$is_
 			${$k} = $v;
 		}
 	}
-	else
+
+	if(is_int($is_json))
 	{
-		if(is_string($entity) && $method == '')
-		{
-			$method = $entity;
-			$entity = array();
-		}
-		elseif(is_bool($entity))
-		{
-			$is_json = $entity;
-			$entity  = array();
-		}
-		elseif(is_int($entity))
-		{
-			$timeout = $entity;
-			$entity  = array();
-		}
+		$timeout = $is_json;
+		$is_json = TRUE;
+	}
 
-		if(is_string($header))
-		{
-			$method = $header;
-			$header = array();
-		}
-		elseif(is_bool($header))
-		{
-			$is_json = $header;
-			$header  = array();
-		}
-		elseif(is_int($header))
-		{
-			$timeout = $header;
-			$header  = array();
-		}
+	if(is_bool($method))
+	{
+		$is_json = $method;
+		$method  = '';
+	}
+	elseif(is_int($method))
+	{
+		$timeout = $method;
+		$method  = '';
+	}
 
-		if(is_bool($method))
-		{
-			$is_json = $method;
-			$method  = '';
-		}
-		elseif(is_int($method))
-		{
-			$timeout = $method;
-			$method  = '';
-		}
+	if(is_string($header))
+	{
+		$method = $header;
+		$header = array();
+	}
+	elseif(is_bool($header))
+	{
+		$is_json = $header;
+		$header  = array();
+	}
+	elseif(is_int($header))
+	{
+		$timeout = $header;
+		$header  = array();
+	}
 
-		if(is_int($is_json))
-		{
-			$timeout = $is_json;
-			$is_json = TRUE;
-		}
+	if(is_string($entity) && $method == '')
+	{
+		$method = $entity;
+		$entity = array();
+	}
+	elseif(is_bool($entity))
+	{
+		$is_json = $entity;
+		$entity  = array();
+	}
+	elseif(is_int($entity))
+	{
+		$timeout = $entity;
+		$entity  = array();
 	}
 
 	$ch = curl_init();
 
+	if(!empty($proxy))
+	{
+		$proxy = explode(':',$proxy);
+
+		curl_setopt($ch,CURLOPT_PROXY,$proxy[0]);
+		curl_setopt($ch,CURLOPT_PROXYPORT,$proxy[1]);
+
+		if(count($proxy) > 3)
+		{
+			$proxy_auth = $proxy[2].':'.$proxy[3];
+		}
+
+		if(!empty($proxy_auth))
+		{
+			curl_setopt($ch,CURLOPT_PROXYAUTH,CURLAUTH_BASIC);
+			curl_setopt($ch,CURLOPT_PROXYUSERPWD,$proxy_auth);
+		}
+
+		curl_setopt($ch,CURLOPT_PROXYTYPE,CURLPROXY_HTTP);
+	}
+
 	curl_setopt($ch,CURLOPT_RETURNTRANSFER,TRUE);
 	curl_setopt($ch,CURLOPT_SSL_VERIFYPEER,FALSE);
 	curl_setopt($ch,CURLOPT_SSL_VERIFYHOST,FALSE);
+	curl_setopt($ch,CURLOPT_FOLLOWLOCATION,$follow_location ?? 1);
 	curl_setopt($ch,CURLOPT_URL,$url);
 	curl_setopt($ch,CURLOPT_TIMEOUT,$timeout);
+
+	if(!$is_json) curl_setopt($ch,CURLOPT_HEADER,1);
 
 	if(!empty($header))
 	{
@@ -692,12 +716,12 @@ function send_request($url,$entity = array(),$header = array(),$method = '',$is_
 
 		foreach($header as $key => $value)
 		{
-			$http_header[] = strtoupper($key).': '.$value;
+			// $http_header[] = strtoupper($key).': '.$value;
+			$http_header[] = $key.': '.$value;
 		}
 
 		curl_setopt($ch,CURLOPT_HTTPHEADER,$http_header);
 	}
-	
 
 	if(!empty($entity))
 	{
@@ -715,6 +739,13 @@ function send_request($url,$entity = array(),$header = array(),$method = '',$is_
 					break;
 				
 				case 'post':
+					$method = '';
+
+					curl_setopt($ch,CURLOPT_POST,TRUE);
+					curl_setopt($ch,CURLOPT_POSTFIELDS, http_build_query($entity));
+					break;
+
+				case 'file':
 					$method = '';
 
 					curl_setopt($ch,CURLOPT_POST,TRUE);
@@ -742,16 +773,23 @@ function send_request($url,$entity = array(),$header = array(),$method = '',$is_
 
 	$result = curl_exec($ch);
 
-	// var_dump(curl_getinfo($ch));
-	
+	if(!$is_json)
+	{
+		$size = curl_getinfo($ch,CURLINFO_HEADER_SIZE);
+		$head = substr($result,0,$size);
+		$body = substr($result,$size);
+	}
+
 	curl_close($ch);
 
 	if($is_json)
 	{
-		$result = json_decode($result,TRUE);
+		return json_decode($result,TRUE);
 	}
-
-	return $result;
+	else
+	{
+		return ['head' => $head,'body' => $body];
+	}
 }
 
 function download($url,$file_path = '',$allow_type = '')
@@ -776,7 +814,7 @@ function download($url,$file_path = '',$allow_type = '')
 
 	if(!is_dir($dir)) mkdir($dir,0777,TRUE);
 
-	if($file = @fopen($url,'rb'))
+	if($file = fopen($url,'rb'))
 	{
 		$bin = fread($file,2);
 
@@ -837,7 +875,7 @@ function download($url,$file_path = '',$allow_type = '')
 
 	if($file_name === '')
 	{
-		$file_name = md5(uniqid().usec(10000,99999)).'.'.$file_type;
+		$file_name = md5(uniqid().mt_rand(10000,99999)).'.'.$file_type;
 	}
 	elseif(strpos($file_name,'.') === FALSE)
 	{
@@ -845,9 +883,11 @@ function download($url,$file_path = '',$allow_type = '')
 	}
 
 	ob_start();
-	readfile($url);
+	$file_read = readfile($url);
 	$file_body = ob_get_contents();
 	ob_end_clean();
+
+	if(!$file_read) return '';
 
 	$fp = fopen($dir.'/'.$file_name,'a');
 	fwrite($fp,$file_body);
@@ -1199,6 +1239,32 @@ function &load_odbc($conf)
 	return $odbc[$id];
 }
 
+function &load_pdo($conf)
+{
+	static $pdo;
+
+	$id = md5(json_encode($conf));
+
+	if(!isset($pdo[$id]))
+	{
+		if(!empty($conf))
+		{
+			$pdo[$id] = new \sox\sdk\com\pdo($conf['hostname'].';Database='.$conf['database'].';',$conf['username'],$conf['password']);
+
+			if($pdo[$id]->connect_error)
+			{
+				message('pdo: Connect Error ('.$pdo[$id]->connect_errno.') - '.$pdo[$id]->connect_error);
+			}
+		}
+		else
+		{
+			message('pdo: no config data.');
+		}
+	}
+
+	return $pdo[$id];
+}
+
 function message($content)
 {
 	if(!defined('SOXMSG'))
@@ -1512,6 +1578,39 @@ function valid_ipv6($str)
 	return $collapsed OR $groups == 1;
 }
 
+function num_rand($min = 0, $max = 0)
+{
+	if ($max == 0) $max = mt_getrandmax();
+
+	$acc = 0;
+
+	$pos = strpos($min.'', '.');
+
+	if ($pos !== FALSE)
+	{
+		$acc = strlen($min.'') - $pos - 1;
+	}
+
+	$pos = strpos($max.'', '.');
+
+	if ($pos !== FALSE)
+	{
+		if ($acc < strlen($max.'') - $pos - 1)
+		{
+			$acc = strlen($max.'') - $pos - 1;
+		}
+	}
+
+	$acc = pow(10, $acc);
+
+	$min = $min * $acc;
+	$max = $max * $acc;
+
+	$num = mt_rand($min, $max);
+
+	return $num / $acc;
+}
+
 function str_rand($length,$str_select = '')
 {
 	if(empty($str_select)) $str_select = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -1665,6 +1764,16 @@ function str_cut($string,$sublen = 300,$start = 0,$endwith = '……',$code = 'U
 
 		return $tmpstr;
 	}
+}
+
+function col_word($col = 0)
+{
+	$word = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+
+	$prefix = floor($col / 26);
+	$colfix = $col % 26;
+
+	return ($prefix == 0 || $prefix > 26) ? $word[$colfix] : $word[$prefix - 1].$word[$colfix];
 }
 
 ?>

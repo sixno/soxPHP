@@ -36,12 +36,12 @@ class html
 
 		if(substr(self::$uri,0,1) == '_' || strpos(self::$uri,'/_')) self::__403();
 
-		self::uri(explode('/',self::$uri));
-
 		if(self::uri(1,$def_route) != '')
 		{
 			if(is_file(self::$view_dir.self::uri(1,$def_route).'.php'))
 			{
+				self::$uri = self::uri(1,$def_route);
+
 				self::$a = array_slice(self::uri(),2);
 
 				self::__output(self::uri(1,$def_route));
@@ -50,6 +50,8 @@ class html
 			{
 				if(is_file(self::$view_dir.self::uri(1,$def_route).'/'.self::uri(2,$def_route).'.php'))
 				{
+					self::uri(explode('/',self::$uri));
+
 					self::$a = array_slice(self::uri(),3);
 
 					self::__output(self::uri(1,$def_route).'/'.self::uri(2,$def_route));
@@ -102,7 +104,7 @@ class html
 
 	static function render($path,$vars = '')
 	{
-		$html = new \sox\sdk\com\html;
+		$h = '\\'.self::class;
 
 		$d = self::$d;
 
@@ -192,7 +194,7 @@ class html
 
 	static function uri($key = 0,$def = '')
 	{
-		return http_uri($key,$def,self::$file);
+		return http_uri($key, $def, self::$file);
 	}
 
 	static function redirect($uri = '',$get = [],$hash = '',$wait = FALSE)
