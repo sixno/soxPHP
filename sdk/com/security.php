@@ -1,7 +1,6 @@
 <?php namespace sox\sdk\com;
 
-class security
-{
+class security {
 	static $charset = 'UTF-8';
 
 	static $_xss_hash = '';
@@ -27,12 +26,9 @@ class security
 		"([\"'])?data\s*:[^\\1]*?base64[^\\1]*?,[^\\1]*?\\1?"
 	);
 
-	static function xss_clean($str, $is_image = FALSE)
-	{
-		if (is_array($str))
-		{
-			while (list($key) = each($str))
-			{
+	static function xss_clean($str, $is_image = FALSE) {
+		if (is_array($str)) {
+			while (list($key) = each($str)) {
 				$str[$key] = self::xss_clean($str[$key]);
 			}
 
@@ -51,8 +47,7 @@ class security
 
 		$str = self::remove_invisible_characters($str);
 
-		if (strpos($str, "\t") !== FALSE)
-		{
+		if (strpos($str, "\t") !== FALSE) {
 			$str = str_replace("\t", ' ', $str);
 		}
 
@@ -60,12 +55,9 @@ class security
 
 		$str = self::_do_never_allowed($str);
 
-		if ($is_image === TRUE)
-		{
+		if ($is_image === TRUE) {
 			$str = preg_replace('/<\?(php)/i', "&lt;?\\1", $str);
-		}
-		else
-		{
+		} else {
 			$str = str_replace(array('<?', '?'.'>'),  array('&lt;?', '?&gt;'), $str);
 		}
 
@@ -74,38 +66,31 @@ class security
 			'applet', 'alert', 'document', 'write', 'cookie', 'window'
 		);
 
-		foreach ($words as $word)
-		{
+		foreach ($words as $word) {
 			$temp = '';
 
-			for ($i = 0, $wordlen = strlen($word); $i < $wordlen; $i++)
-			{
+			for ($i = 0, $wordlen = strlen($word); $i < $wordlen; $i++) {
 				$temp .= substr($word, $i, 1)."\s*";
 			}
 
 			$str = preg_replace_callback('#('.substr($temp, 0, -3).')(\W)#is', array('\\sox\\sdk\\com\\security', '_compact_exploded_words'), $str);
 		}
 
-		do
-		{
+		do {
 			$original = $str;
 
-			if (preg_match("/<a/i", $str))
-			{
+			if (preg_match("/<a/i", $str)) {
 				$str = preg_replace_callback("#<a\s+([^>]*?)(>|$)#si", array('\\sox\\sdk\\com\\security', '_js_link_removal'), $str);
 			}
 
-			if (preg_match("/<img/i", $str))
-			{
+			if (preg_match("/<img/i", $str)) {
 				$str = preg_replace_callback("#<img\s+([^>]*?)(\s?/?>|$)#si", array('\\sox\\sdk\\com\\security', '_js_img_removal'), $str);
 			}
 
-			if (preg_match("/script/i", $str) OR preg_match("/xss/i", $str))
-			{
+			if (preg_match("/script/i", $str) OR preg_match("/xss/i", $str)) {
 				$str = preg_replace("#<(/*)(script|xss)(.*?)\>#si", '[removed]', $str);
 			}
-		}
-		while($original != $str);
+		} while ($original != $str);
 
 		unset($original);
 
@@ -118,18 +103,15 @@ class security
 
 		$str = self::_do_never_allowed($str);
 
-		if ($is_image === TRUE)
-		{
+		if ($is_image === TRUE) {
 			return ($str == $converted_string) ? TRUE: FALSE;
 		}
 
 		return $str;
 	}
 
-	static function xss_hash()
-	{
-		if (self::$_xss_hash == '')
-		{
+	static function xss_hash() {
+		if (self::$_xss_hash == '') {
 			mt_srand();
 			self::$_xss_hash = md5(time() + mt_rand(0, 1999999999));
 		}
@@ -137,10 +119,8 @@ class security
 		return self::$_xss_hash;
 	}
 
-	static function entity_decode($str, $charset='UTF-8')
-	{
-		if (stristr($str, '&') === FALSE)
-		{
+	static function entity_decode($str, $charset='UTF-8') {
+		if (stristr($str, '&') === FALSE) {
 			return $str;
 		}
 
@@ -149,8 +129,7 @@ class security
 		return preg_replace_callback('~&#([0-9]{2,4})~',function($match){return chr($match[1]);},$str);
 	}
 
-	static function sanitize_filename($str, $relative_path = FALSE)
-	{
+	static function sanitize_filename($str, $relative_path = FALSE) {
 		$bad = array(
 			"../",
 			"<!--",
@@ -185,8 +164,7 @@ class security
 			"%3d"		// =
 		);
 
-		if ( ! $relative_path)
-		{
+		if (!$relative_path) {
 			$bad[] = './';
 			$bad[] = '/';
 		}
@@ -195,17 +173,14 @@ class security
 		return stripslashes(str_replace($bad, '', $str));
 	}
 
-	static function _compact_exploded_words($matches)
-	{
+	static function _compact_exploded_words($matches) {
 		return preg_replace('/\s+/s', '', $matches[1]).$matches[2];
 	}
 
-	static function _remove_evil_attributes($str, $is_image)
-	{
+	static function _remove_evil_attributes($str, $is_image) {
 		$evil_attributes = array('on\w*', 'style', 'xmlns', 'formaction');
 
-		if ($is_image === TRUE)
-		{
+		if ($is_image === TRUE) {
 			unset($evil_attributes[array_search('xmlns', $evil_attributes)]);
 		}
 
@@ -215,21 +190,18 @@ class security
 
 			preg_match_all('/('.implode('|', $evil_attributes).')\s*=\s*([^\s>]*)/is', $str, $matches, PREG_SET_ORDER);
 
-			foreach ($matches as $attr)
-			{
+			foreach ($matches as $attr) {
 
 				$attribs[] = preg_quote($attr[0], '/');
 			}
 
 			preg_match_all("/(".implode('|', $evil_attributes).")\s*=\s*(\042|\047)([^\\2]*?)(\\2)/is",  $str, $matches, PREG_SET_ORDER);
 
-			foreach ($matches as $attr)
-			{
+			foreach ($matches as $attr) {
 				$attribs[] = preg_quote($attr[0], '/');
 			}
 
-			if (count($attribs) > 0)
-			{
+			if (count($attribs) > 0) {
 				$str = preg_replace("/<(\/?[^><]+?)([^A-Za-z<>\-])(.*?)(".implode('|', $attribs).")(.*?)([\s><])([><]*)/i", '<$1 $3$5$6$7', $str, -1, $count);
 			}
 
@@ -238,8 +210,7 @@ class security
 		return $str;
 	}
 
-	static function _sanitize_naughty_html($matches)
-	{
+	static function _sanitize_naughty_html($matches) {
 		$str = '&lt;'.$matches[1].$matches[2].$matches[3];
 
 		$str .= str_replace(array('>', '<'), array('&gt;', '&lt;'),$matches[4]);
@@ -247,8 +218,7 @@ class security
 		return $str;
 	}
 
-	static function _js_link_removal($match)
-	{
+	static function _js_link_removal($match) {
 		return str_replace(
 			$match[1],
 			preg_replace(
@@ -260,8 +230,7 @@ class security
 		);
 	}
 
-	static function _js_img_removal($match)
-	{
+	static function _js_img_removal($match) {
 		return str_replace(
 			$match[1],
 			preg_replace(
@@ -273,19 +242,15 @@ class security
 		);
 	}
 
-	static function _convert_attribute($match)
-	{
+	static function _convert_attribute($match) {
 		return str_replace(array('>', '<', '\\'), array('&gt;', '&lt;', '\\\\'), $match[0]);
 	}
 
-	static function _filter_attributes($str)
-	{
+	static function _filter_attributes($str) {
 		$out = '';
 
-		if (preg_match_all('#\s*[a-z\-]+\s*=\s*(\042|\047)([^\\1]*?)\\1#is', $str, $matches))
-		{
-			foreach ($matches[0] as $match)
-			{
+		if (preg_match_all('#\s*[a-z\-]+\s*=\s*(\042|\047)([^\\1]*?)\\1#is', $str, $matches)) {
+			foreach ($matches[0] as $match) {
 				$out .= preg_replace("#/\*.*?\*/#s", '', $match);
 			}
 		}
@@ -293,13 +258,11 @@ class security
 		return $out;
 	}
 
-	static function _decode_entity($match)
-	{
+	static function _decode_entity($match) {
 		return self::entity_decode($match[0], self::$charset);
 	}
 
-	static function _validate_entities($str)
-	{
+	static function _validate_entities($str) {
 		$str = preg_replace('|\&([a-z\_0-9\-]+)\=([a-z\_0-9\-]+)|i', self::xss_hash()."\\1=\\2", $str);
 
 		$str = preg_replace('#(&\#?[0-9a-z]{2,})([\x00-\x20])*;?#i', "\\1;\\2", $str);
@@ -311,8 +274,7 @@ class security
 		return $str;
 	}
 
-	static function _do_never_allowed($str)
-	{
+	static function _do_never_allowed($str) {
 		$str = str_replace(array_keys(self::$_never_allowed_str), self::$_never_allowed_str, $str);
 
 		foreach (self::$_never_allowed_regex as $regex)
@@ -323,29 +285,23 @@ class security
 		return $str;
 	}
 
-	static function remove_invisible_characters($str,$url_encoded = TRUE)
-	{
+	static function remove_invisible_characters($str,$url_encoded = TRUE) {
 		$non_displayables = array();
 		
 		// every control character except newline (dec 10)
 		// carriage return (dec 13), and horizontal tab (dec 09)
 		
-		if($url_encoded)
-		{
+		if ($url_encoded) {
 			$non_displayables[] = '/%0[0-8bcef]/';	// url encoded 00-08, 11, 12, 14, 15
 			$non_displayables[] = '/%1[0-9a-f]/';	// url encoded 16-31
 		}
 		
 		$non_displayables[] = '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/S';	// 00-08, 11, 12, 14-31, 127
 
-		do
-		{
+		do {
 			$str = preg_replace($non_displayables, '', $str, -1, $count);
-		}
-		while($count);
+		} while ($count);
 
 		return $str;
 	}
 }
-
-?>

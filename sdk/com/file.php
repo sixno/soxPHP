@@ -2,19 +2,15 @@
 
 use \sox\sdk\com\mime;
 
-class file
-{
-	static function for_download($filename = '', $data = '')
-	{
-		if ($filename == '' OR $data == '')
-		{
+class file {
+	static function for_download($filename = '', $data = '') {
+		if ($filename == '' OR $data == '') {
 			return FALSE;
 		}
 
 		// Try to determine if the filename includes a file extension.
 		// We need it in order to set the MIME type
-		if (FALSE === strpos($filename, '.'))
-		{
+		if (FALSE === strpos($filename, '.')) {
 			return FALSE;
 		}
 
@@ -25,18 +21,14 @@ class file
 		$mimes = mime::list();
 
 		// Set a default mime if we can't find it
-		if(!isset($mimes[$extension]))
-		{
+		if (!isset($mimes[$extension])) {
 			$mime = 'application/octet-stream';
-		}
-		else
-		{
+		} else {
 			$mime = (is_array($mimes[$extension])) ? $mimes[$extension][0] : $mimes[$extension];
 		}
 
 		// Generate the server headers
-		if (strpos($_SERVER['HTTP_USER_AGENT'], "MSIE") !== FALSE)
-		{
+		if (strpos($_SERVER['HTTP_USER_AGENT'], "MSIE") !== FALSE) {
 			header('Content-Type: "'.$mime.'"');
 			header('Content-Disposition: attachment; filename="'.$filename.'"');
 			header('Expires: 0');
@@ -44,9 +36,7 @@ class file
 			header("Content-Transfer-Encoding: binary");
 			header('Pragma: public');
 			header("Content-Length: ".strlen($data));
-		}
-		else
-		{
+		} else {
 			header('Content-Type: "'.$mime.'"');
 			header('Content-Disposition: attachment; filename="'.$filename.'"');
 			header("Content-Transfer-Encoding: binary");
@@ -58,5 +48,3 @@ class file
 		exit($data);
 	}
 }
-
-?>

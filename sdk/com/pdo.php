@@ -1,7 +1,6 @@
 <?php namespace sox\sdk\com;
 
-class pdo
-{
+class pdo {
 	public $driver = '';
 	public $conn = NULL;
 	public $exec = NULL;
@@ -13,35 +12,30 @@ class pdo
 	public $insert_id     = 0; // @@IDENTITY
 	public $affected_rows = 0; // @@ROWCOUNT || row_count()
 
-	public function __construct($dsn,$username,$password)
-	{
-		if(strpos($dsn,'sqlsrv') !== FALSE) $this->driver = 'sqlsrv';
+	public function __construct($dsn,$username,$password) {
+		if (strpos($dsn, 'sqlsrv') !== FALSE) $this->driver = 'sqlsrv';
 
 		$this->conn = new \PDO($dsn,$username,$password,[\PDO::ATTR_ERRMODE => \PDO::ERRMODE_WARNING]);
 	}
 
-	public function query($sql)
-	{
-		if(empty($this->conn)) return FALSE;
+	public function query($sql) {
+		if (empty($this->conn)) return FALSE;
 
 		$sql = str_replace('`','',$sql);
 
-		if($this->driver == 'sqlsrv')
-		{
+		if ($this->driver == 'sqlsrv') {
 			$sql = preg_replace('/ LIMIT (.*?) /i',' ',$sql);
 		}
 
 		$this->exec = $this->conn->query($sql);
 
-		if($this->exec === FALSE)
-		{
+		if ($this->exec === FALSE) {
 			$this->error = 'pdo error';
 		}
 
 		//SELECT, SHOW, DESCRIBE, EXPLAIN
 
-		switch(strtoupper(substr($sql,0,4)))
-		{
+		switch(strtoupper(substr($sql,0,4))) {
 			case 'SELE':
 			case 'SHOW':
 			case 'DESC':
@@ -57,9 +51,8 @@ class pdo
 		}
 	}
 
-	public function fetch_row()
-	{
-		if(empty($this->exec)) return FALSE;
+	public function fetch_row() {
+		if (empty($this->exec)) return FALSE;
 
 		$this->exec->setFetchMode(\PDO::FETCH_NUM);
 
@@ -70,14 +63,11 @@ class pdo
 		return $row;
 	}
 
-	public function fetch_all($assoc = MYSQLI_ASSOC)
-	{
-		if(empty($this->exec)) return FALSE;
+	public function fetch_all($assoc = MYSQLI_ASSOC) {
+		if (empty($this->exec)) return FALSE;
 
 		$this->exec->setFetchMode(\PDO::FETCH_ASSOC);
 
 		return $this->exec->fetchAll();
 	}
 }
-
-?>

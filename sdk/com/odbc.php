@@ -1,7 +1,6 @@
 <?php namespace sox\sdk\com;
 
-class odbc
-{
+class odbc {
 	public $conn = NULL;
 	public $exec = NULL;
 
@@ -12,36 +11,30 @@ class odbc
 	public $insert_id     = 0; // @@IDENTITY
 	public $affected_rows = 0; // @@ROWCOUNT || row_count()
 
-	public function __construct($dsn,$username,$password,$database)
-	{
+	public function __construct($dsn,$username,$password,$database) {
 		$this->conn = odbc_connect($dsn,$username,$password);
 
-		if($this->conn)
-		{
+		if ($this->conn) {
 			$this->query('USE `'.$database.'`');
 		}
-		else
-		{
+		else {
 			$this->connect_errno = odbc_error($this->conn);
 			$this->connect_error = odbc_errormsg($this->conn);
 		}
 	}
 
-	public function query($sql)
-	{
-		if(empty($this->conn)) return FALSE;
+	public function query($sql) {
+		if (empty($this->conn)) return FALSE;
 
 		$this->exec = odbc_exec($this->conn,str_replace('`','',$sql));
 
-		if($this->exec === FALSE)
-		{
+		if ($this->exec === FALSE) {
 			$this->error = odbc_errormsg($this->conn);
 		}
 
 		//SELECT, SHOW, DESCRIBE, EXPLAIN
 
-		switch(strtoupper(substr($sql,0,4)))
-		{
+		switch(strtoupper(substr($sql,0,4))) {
 			case 'SELE':
 			case 'SHOW':
 			case 'DESC':
@@ -55,9 +48,8 @@ class odbc
 		}
 	}
 
-	public function fetch_row()
-	{
-		if(empty($this->exec)) return FALSE;
+	public function fetch_row() {
+		if (empty($this->exec)) return FALSE;
 
 		odbc_fetch_into($this->exec,$row);
 
@@ -66,23 +58,20 @@ class odbc
 		return $row;
 	}
 
-	public function fetch_all($assoc = MYSQLI_ASSOC)
-	{
-		if(empty($this->exec)) return FALSE;
+	public function fetch_all($assoc = MYSQLI_ASSOC) {
+		if (empty($this->exec)) return FALSE;
 
 		$i = 0;
 		$list = [];
 		
-		while(odbc_fetch_row($this->exec))
-		{
+		while (odbc_fetch_row($this->exec)) {
 			$j = 0;
 			$item = [];
 
-			for($j = 1;$j <= odbc_num_fields($this->exec);$j++)
-			{
+			for($j = 1;$j <= odbc_num_fields($this->exec);$j++) {
 				$field = odbc_field_name($this->exec,$j);
 
-				if($field == 'bucket__id') continue;
+				if ($field == 'bucket__id') continue;
 
 				$item[$field] = odbc_result($this->exec,$field);
 			}
@@ -98,5 +87,3 @@ class odbc
 		return $list;
 	}
 }
-
-?>

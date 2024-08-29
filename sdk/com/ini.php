@@ -2,70 +2,59 @@
 
 use \sox\sdk\com\db;
 
-class ini
-{
+class ini {
 	static $conf = [];
 
-	static function get($key,$def = '',$mod = TRUE)
-	{
-		if(is_bool($def))
-		{
+	static function get($key, $def = '', $mod = TRUE) {
+		if (is_bool($def)) {
 			$mod = $def;
 
 			$def = '';
 		}
 
-		$key = explode('.',$key);
+		$key = explode('.', $key);
 
 		$file_name = array_shift($key);
 
-		if(!isset(self::$conf[$file_name]))
-		{
-			if($mod)
-			{
+		if (!isset(self::$conf[$file_name])) {
+			if ($mod) {
 				$sub_dir = '';
 
-				if(defined('SOXINI'))
-				{
+				if (defined('SOXINI')) {
 					$hostname = gethostname();
 
-					$hostlist = explode(';',SOXINI);
+					$hostlist = explode(';', SOXINI);
 
-					foreach($hostlist as $host)
-					{
-						$host_arr = explode(':',$host);
+					foreach ($hostlist as $host) {
+						$host_arr = explode(':', $host);
 
-						if($host_arr[0] == $hostname)
-						{
+						if ($host_arr[0] == $hostname) {
 							$sub_dir = ($host_arr[1] ?? $host_arr[0]).'/';
+
+							break;
 						}
 					}
 				}
 
-				self::$conf[$file_name] = parse_ini_file(__DIR__.'/../../com/ini/'.$sub_dir.$file_name.'.ini',TRUE);
-			}
-			else
-			{
-				self::$conf[$file_name] = parse_ini_file(__DIR__.'/../../com/'.$file_name.'.ini',TRUE);
+				if ($sub_dir && is_file(__DIR__.'/../../com/ini/'.$sub_dir.$file_name.'.ini')) {
+					self::$conf[$file_name] = parse_ini_file(__DIR__.'/../../com/ini/'.$sub_dir.$file_name.'.ini', TRUE);
+				} else {
+					self::$conf[$file_name] = parse_ini_file(__DIR__.'/../../com/ini/'.$file_name.'.ini', TRUE);
+				}
+			} else {
+				self::$conf[$file_name] = parse_ini_file(__DIR__.'/../../com/ini/'.$file_name.'.ini', TRUE);
 			}
 		}
 
-		if(empty($key))
-		{
+		if (empty($key)) {
 			return self::$conf[$file_name];
-		}
-		else
-		{
+		} else {
 			$cop = &self::$conf[$file_name];
 
-			foreach($key as $ckey)
-			{
-				if(isset($cop[$ckey]))
-				{
+			foreach ($key as $ckey) {
+				if (isset($cop[$ckey])) {
 					$cop = &$cop[$ckey];
-				}
-				else
-				{
+				} else {
 					return $def;
 				}
 			}
@@ -74,47 +63,34 @@ class ini
 		}
 	}
 
-	static function get_prikey($table,$up = TRUE)
-	{
+	static function get_prikey($table, $up = TRUE) {
 		$model = new db('prikey',self::get('db'));
 
 		$prikey = (int)$model->find('auto_increment',['table_name' => $table]);
 
-		if($prikey == 0)
-		{
+		if ($prikey == 0) {
 			$prikey = 1;
 
-			if($up) $model->create(['table_name' => $table,'auto_increment' => 1]);
-		}
-		else
-		{
+			if ($up) $model->create(['table_name' => $table,'auto_increment' => 1]);
+		} else {
 			$prikey += 1;
 
-			if($up) $model->increase(['table_name' => $table],'auto_increment',1);
+			if ($up) $model->increase(['table_name' => $table],'auto_increment',1);
 		}
 
 		return $prikey;
 	}
 
-	static function state($class,&$item,$key,$def = '',$alias = '')
-	{
-		if(isset($item[$key]))
-		{
-			if(isset($class::${$key.'_state'}))
-			{
+	static function state($class, &$item, $key, $def = '', $alias = '') {
+		if (isset($item[$key])) {
+			if (isset($class::${$key.'_state'})) {
 				$item[$alias ?: $key.'_state'] = isset($class::${$key.'_state'}[$item[$key]]) ? $class::${$key.'_state'}[$item[$key]] : $def;
-			}
-			elseif(method_exists($class,'_'.$key.'_state'))
-			{
+			} else if (method_exists($class,'_'.$key.'_state')) {
 				$item[$alias ?: $key.'_state'] = call_user_func($class.'::_'.$key.'_state',$item[$key],$alias,$item);
-			}
-			else
-			{
+			} else {
 				$item[$alias ?: $key.'_state'] = $def;
 			}
-		}
-		else
-		{
+		} else {
 			$item[$key] = '';
 			$item[$alias ?: $key.'_state'] = $def;
 		}
@@ -122,10 +98,7 @@ class ini
 		return $item[$alias ?: $key.'_state'];
 	}
 
-	static function table_cols($file_name)
-	{
+	static function table_cols($file_name) {
 		return self::get('ini_db/'.$file_name.'.field',FALSE);
 	}
 }
-
-?>
