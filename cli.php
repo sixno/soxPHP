@@ -20,7 +20,7 @@ require 'sdk/common.php';
 if (empty($exec)) {
 	$para = array_slice($_SERVER['argv'], 1);
 } else {
-	$para = explode(' ',$exec);
+	$para = explode(' ', $exec);
 }
 
 $func = array_shift($para);
@@ -28,7 +28,7 @@ $func = array_shift($para);
 if (empty($func)) exit("cmd not found\r\n");
 
 if (function_exists('\\sox\\'.$func)) {
-	call_user_func_array('\\sox\\'.$func,$para);
+	call_user_func_array('\\sox\\'.$func, $para);
 } else {
 	exit("function not found\r\n");
 }
