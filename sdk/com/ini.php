@@ -19,11 +19,12 @@ class ini {
 		if (!isset(self::$conf[$file_name])) {
 			if ($mod) {
 				$sub_dir = '';
+				$def_ini = get_env('ini');
 
-				if (defined('SOXINI')) {
+				if ($def_ini) {
 					$hostname = gethostname();
 
-					$hostlist = explode(';', SOXINI);
+					$hostlist = explode(';', $def_ini);
 
 					foreach ($hostlist as $host) {
 						$host_arr = explode(':', $host);

@@ -62,7 +62,7 @@ class html {
 	static function __403() {
 		header('HTTP/1.1 403 Forbidden');
 
-		echo '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body bgcolor="white"><center><h1>403 Forbidden</h1></center><hr></body></html>';
+		echo '<!DOCTYPE html><html><head><title>403 Forbidden</title></head><body bgcolor="white"><center><h1>403 Forbidden</h1></center><hr></body></html>';
 
 		exit;
 	}
@@ -71,6 +71,14 @@ class html {
 		header('HTTP/1.1 404 Not Found');
 
 		echo '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body bgcolor="white"><center><h1>404 Not Found</h1></center><hr></body></html>';
+
+		exit;
+	}
+
+	static function __503($msg = '') {
+		header('HTTP/1.1 503 Service Unavailable');
+
+		echo '<!DOCTYPE html><html><head><title>503 Service Unavailable</title></head><body bgcolor="white"><center><h1>503 Service Unavailable</h1></center><hr>'.($msg ? '<center>'.$msg.'</center>' : '').'</body></html>';
 
 		exit;
 	}

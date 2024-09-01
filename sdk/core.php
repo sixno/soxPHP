@@ -14,6 +14,20 @@ spl_autoload_register(function($name) {
 	if (isset($class_file) && is_file($class_file)) require($class_file);
 });
 
+function get_env($key, $def = FALSE, $set = FALSE) {
+	static $env;
+
+	if (!isset($env)) $env = [];
+
+	if ($set) $env[$key] = $def;
+
+	return isset($env[$key]) ? $env[$key] : $def;
+}
+
+function set_env($key, $val) {
+	return get_env($key, $val, TRUE);
+}
+
 function run($func, $output = TRUE) {
 	$time = microtime();
 
@@ -1074,10 +1088,12 @@ function &load_pdo($conf) {
 }
 
 function message($content) {
-	if (!defined('SOXMSG')) {
+	$callback = get_env('err');
+
+	if (!$callback) {
 		echo 'System Message: '.$content."\r\n";
 	} else {
-		call_user_func(SOXMSG, $content);
+		call_user_func($callback, $content);
 	}
 
 	exit;

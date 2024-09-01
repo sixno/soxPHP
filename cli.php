@@ -1,22 +1,17 @@
-<?php
+<?php if(php_sapi_name() != 'cli' && !defined('STDIN')) exit('it can not be run without cli');
+
+require 'sdk/core.php';
 
 use \sox\sdk\com\ini;
 use \sox\sdk\com\db;
 
 date_default_timezone_set("Asia/Shanghai");
 
-if(php_sapi_name() != 'cli' && !defined('STDIN')) exit('it can not be run without cli');
-
 // exec
 $exec = '';
 
-// global loader
+// ------
 
-require 'sdk/common.php';
-
-// user function
-
-// go
 if (empty($exec)) {
 	$para = array_slice($_SERVER['argv'], 1);
 } else {
@@ -25,10 +20,10 @@ if (empty($exec)) {
 
 $func = array_shift($para);
 
-if (empty($func)) exit("cmd not found\r\n");
+if (empty($func)) exit("cmd not set\r\n");
 
-if (function_exists('\\sox\\'.$func)) {
-	call_user_func_array('\\sox\\'.$func, $para);
+if (method_exists('\\sox\\cli\\'.$cli_name, $cli_func)) {
+		call_user_func_array('\\sox\\cli\\'.$cli_name.'::'.$cli_func, $para);
 } else {
-	exit("function not found\r\n");
+	exit("cmd not found\r\n");
 }
